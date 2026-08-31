@@ -170,19 +170,18 @@
             }, []);
 
             const checkMatch = useCallback((spokenText) => {
-                // 將語音結果字串轉換為單字陣列進行比對，移除了嚴格的標點符號過濾，保留 a 等冠詞
-                const spokenWords = spokenText.split(/\s+/);
-                // 為了處理 "a cook" 這種多字詞，我們同時也比對完整的字串
-                const normalizedSpokenText = spokenText.replace(/[^a-z0-9\s]/g, '');
+                // 過濾掉標點符號，保留純小寫字母與空白
+                const normalizedSpokenText = spokenText.replace(/[^a-z0-9\s]/g, '').trim();
+                const spokenWords = normalizedSpokenText.split(/\s+/);
 
                 WORDS.forEach(word => {
-                    // 1. 檢查是否整句完全相符 (例如念出 "a cook")
-                    // 2. 檢查單字是否出現在念出的單字中 (例如單獨念出 "cook")
-                    // 3. 檢查 aliases
+                    // 目標單字也做一樣的標準化
+                    const normalizedWordEn = word.en.replace(/[^a-z0-9\s]/g, '').trim();
                     
+                    // 判斷 1：你說的那串話裡面，有沒有包含完整的 "a cook"
+                    // 判斷 2：或者你說的單字中，有沒有命中別名 "cook"
                     const isMatched = 
-                        normalizedSpokenText.includes(word.en.replace(/[^a-z0-9\s]/g, '')) ||
-                        spokenWords.some(sw => word.en.split(' ').includes(sw)) ||
+                        normalizedSpokenText.includes(normalizedWordEn) ||
                         (word.aliases && word.aliases.some(alias => spokenWords.includes(alias)));
                     
                     if (isMatched && !solvedRef.current.includes(word.en)) {
