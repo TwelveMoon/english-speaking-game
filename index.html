@@ -1,0 +1,377 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+<html>
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+  <meta http-equiv="Content-Style-Type" content="text/css">
+  <title></title>
+  <meta name="Generator" content="Cocoa HTML Writer">
+  <meta name="CocoaVersion" content="2685.7">
+  <style type="text/css">
+    p.p1 {margin: 0.0px 0.0px 0.0px 0.0px; font: 12.0px Helvetica}
+    p.p2 {margin: 0.0px 0.0px 0.0px 0.0px; font: 12.0px Helvetica; min-height: 14.0px}
+  </style>
+</head>
+<body>
+<p class="p1">&lt;!DOCTYPE html&gt;</p>
+<p class="p1">&lt;html lang="zh-TW"&gt;</p>
+<p class="p1">&lt;head&gt;</p>
+<p class="p1"><span class="Apple-converted-space">    </span>&lt;meta charset="UTF-8"&gt;</p>
+<p class="p1"><span class="Apple-converted-space">    </span>&lt;meta name="viewport" content="width=device-width, initial-scale=1.0"&gt;</p>
+<p class="p1"><span class="Apple-converted-space">    </span>&lt;title&gt;英語語音達人 - 聽音辨字&lt;/title&gt;</p>
+<p class="p2"><span class="Apple-converted-space">    </span></p>
+<p class="p1"><span class="Apple-converted-space">    </span>&lt;script src="https://cdn.tailwindcss.com"&gt;&lt;/script&gt;</p>
+<p class="p1"><span class="Apple-converted-space">    </span>&lt;script src="https://unpkg.com/react@18/umd/react.production.min.js"&gt;&lt;/script&gt;</p>
+<p class="p1"><span class="Apple-converted-space">    </span>&lt;script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"&gt;&lt;/script&gt;</p>
+<p class="p1"><span class="Apple-converted-space">    </span>&lt;script src="https://unpkg.com/@babel/standalone/babel.min.js"&gt;&lt;/script&gt;</p>
+<p class="p2"><br></p>
+<p class="p1"><span class="Apple-converted-space">    </span>&lt;style&gt;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>/* 飛起特效動畫 (時間約兩秒) */</p>
+<p class="p1"><span class="Apple-converted-space">        </span>@keyframes flyUpReveal {</p>
+<p class="p1"><span class="Apple-converted-space">            </span>0% { transform: translateY(0) scale(1); opacity: 1; }</p>
+<p class="p1"><span class="Apple-converted-space">            </span>30% { transform: translateY(-30px) scale(1.1); opacity: 0; }</p>
+<p class="p1"><span class="Apple-converted-space">            </span>40% { transform: translateY(-30px) scale(1.1); opacity: 0; }</p>
+<p class="p1"><span class="Apple-converted-space">            </span>70% { transform: translateY(0) scale(1.05); opacity: 1; }</p>
+<p class="p1"><span class="Apple-converted-space">            </span>100% { transform: translateY(0) scale(1); opacity: 1; }</p>
+<p class="p1"><span class="Apple-converted-space">        </span>}</p>
+<p class="p1"><span class="Apple-converted-space">        </span>.animate-fly-up {</p>
+<p class="p1"><span class="Apple-converted-space">            </span>animation: flyUpReveal 2s ease-in-out forwards;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>}</p>
+<p class="p2"><span class="Apple-converted-space">        </span></p>
+<p class="p1"><span class="Apple-converted-space">        </span>.prevent-select {</p>
+<p class="p1"><span class="Apple-converted-space">            </span>user-select: none;</p>
+<p class="p1"><span class="Apple-converted-space">            </span>-webkit-user-select: none;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>}</p>
+<p class="p2"><br></p>
+<p class="p1"><span class="Apple-converted-space">        </span>/* 麥克風收音時的脈衝動畫 */</p>
+<p class="p1"><span class="Apple-converted-space">        </span>@keyframes pulse-ring {</p>
+<p class="p1"><span class="Apple-converted-space">            </span>0% { box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.5); }</p>
+<p class="p1"><span class="Apple-converted-space">            </span>70% { box-shadow: 0 0 0 15px rgba(59, 130, 246, 0); }</p>
+<p class="p1"><span class="Apple-converted-space">            </span>100% { box-shadow: 0 0 0 0 rgba(59, 130, 246, 0); }</p>
+<p class="p1"><span class="Apple-converted-space">        </span>}</p>
+<p class="p1"><span class="Apple-converted-space">        </span>.mic-active {</p>
+<p class="p1"><span class="Apple-converted-space">            </span>animation: pulse-ring 1.5s infinite;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>}</p>
+<p class="p1"><span class="Apple-converted-space">    </span>&lt;/style&gt;</p>
+<p class="p1">&lt;/head&gt;</p>
+<p class="p1">&lt;body&gt;</p>
+<p class="p1"><span class="Apple-converted-space">    </span>&lt;div id="root"&gt;&lt;/div&gt;</p>
+<p class="p2"><br></p>
+<p class="p1"><span class="Apple-converted-space">    </span>&lt;script type="text/babel"&gt;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>const { useState, useEffect, useRef, useCallback } = React;</p>
+<p class="p2"><br></p>
+<p class="p1"><span class="Apple-converted-space">        </span>// --- 題庫區 (包含數字與近似音) ---</p>
+<p class="p1"><span class="Apple-converted-space">        </span>const WORDS = [</p>
+<p class="p1"><span class="Apple-converted-space">            </span>{ en: 'six', zh: '六', symbol: '6️⃣', aliases: ['6', 'sex'] },</p>
+<p class="p1"><span class="Apple-converted-space">            </span>{ en: 'seven', zh: '七', symbol: '7️⃣', aliases: ['7'] },</p>
+<p class="p1"><span class="Apple-converted-space">            </span>{ en: 'eight', zh: '八', symbol: '8️⃣', aliases: ['8', 'ate', 'a'] },</p>
+<p class="p1"><span class="Apple-converted-space">            </span>{ en: 'nine', zh: '九', symbol: '9️⃣', aliases: ['9', 'line', 'night'] },</p>
+<p class="p1"><span class="Apple-converted-space">            </span>{ en: 'ten', zh: '十', symbol: '🔟', aliases: ['10', 'tin', 'pen'] }</p>
+<p class="p1"><span class="Apple-converted-space">        </span>];</p>
+<p class="p2"><br></p>
+<p class="p1"><span class="Apple-converted-space">        </span>// --- Icons ---</p>
+<p class="p1"><span class="Apple-converted-space">        </span>const IconStar = ({ size = 24, className = "", fill = "none" }) =&gt; (</p>
+<p class="p1"><span class="Apple-converted-space">            </span>&lt;svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill={fill} stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}&gt;&lt;polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"&gt;&lt;/polygon&gt;&lt;/svg&gt;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>);</p>
+<p class="p1"><span class="Apple-converted-space">        </span>const IconTrophy = ({ size = 24, className = "" }) =&gt; (</p>
+<p class="p1"><span class="Apple-converted-space">            </span>&lt;svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}&gt;&lt;path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"&gt;&lt;/path&gt;&lt;path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"&gt;&lt;/path&gt;&lt;path d="M4 22h16"&gt;&lt;/path&gt;&lt;path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"&gt;&lt;/path&gt;&lt;path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"&gt;&lt;/path&gt;&lt;path d="M18 2H6v7c0 6 6 10 6 10s6-4 6-10V2z"&gt;&lt;/path&gt;&lt;/svg&gt;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>);</p>
+<p class="p1"><span class="Apple-converted-space">        </span>const IconRefreshCcw = ({ size = 24, className = "" }) =&gt; (</p>
+<p class="p1"><span class="Apple-converted-space">            </span>&lt;svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}&gt;&lt;polyline points="1 4 1 10 7 10"&gt;&lt;/polyline&gt;&lt;polyline points="23 20 23 14 17 14"&gt;&lt;/polyline&gt;&lt;path d="M20.49 9A9 9 0 0 0 5.64 5.64L1 10m22 4l-4.64 4.36A9 9 0 0 1 3.51 15"&gt;&lt;/path&gt;&lt;/svg&gt;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>);</p>
+<p class="p1"><span class="Apple-converted-space">        </span>const IconPlay = ({ size = 24, className = "", fill="none" }) =&gt; (</p>
+<p class="p1"><span class="Apple-converted-space">            </span>&lt;svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill={fill} stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}&gt;&lt;polygon points="5 3 19 12 5 21 5 3"&gt;&lt;/polygon&gt;&lt;/svg&gt;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>);</p>
+<p class="p1"><span class="Apple-converted-space">        </span>const IconMic = ({ size = 24, className = "" }) =&gt; (</p>
+<p class="p1"><span class="Apple-converted-space">            </span>&lt;svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}&gt;&lt;path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"&gt;&lt;/path&gt;&lt;path d="M19 10v2a7 7 0 0 1-14 0v-2"&gt;&lt;/path&gt;&lt;line x1="12" y1="19" x2="12" y2="22"&gt;&lt;/line&gt;&lt;/svg&gt;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>);</p>
+<p class="p1"><span class="Apple-converted-space">        </span>const IconMicOff = ({ size = 24, className = "" }) =&gt; (</p>
+<p class="p1"><span class="Apple-converted-space">            </span>&lt;svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}&gt;&lt;line x1="2" y1="2" x2="22" y2="22"&gt;&lt;/line&gt;&lt;path d="M18.89 13.23A7.12 7.12 0 0 0 19 12v-2"&gt;&lt;/path&gt;&lt;path d="M5 10v2a7 7 0 0 0 12 5l-2.7-2.7a4.5 4.5 0 0 1-6.3-6.3L5 6.13Z"&gt;&lt;/path&gt;&lt;path d="M15 9.34V5a3 3 0 0 0-5.68-1.33l1.67 1.67H11a1 1 0 0 1 1 1v2.34Z"&gt;&lt;/path&gt;&lt;line x1="12" y1="19" x2="12" y2="22"&gt;&lt;/line&gt;&lt;/svg&gt;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>);</p>
+<p class="p2"><br></p>
+<p class="p1"><span class="Apple-converted-space">        </span>function App() {</p>
+<p class="p1"><span class="Apple-converted-space">            </span>const [gameState, setGameState] = useState('start'); // start, playing, game_complete</p>
+<p class="p1"><span class="Apple-converted-space">            </span>const [isListening, setIsListening] = useState(false);</p>
+<p class="p1"><span class="Apple-converted-space">            </span>const [transcript, setTranscript] = useState('');</p>
+<p class="p1"><span class="Apple-converted-space">            </span>const [solvedWords, setSolvedWords] = useState([]);</p>
+<p class="p1"><span class="Apple-converted-space">            </span>const [animatingWords, setAnimatingWords] = useState([]);</p>
+<p class="p1"><span class="Apple-converted-space">            </span>const [errorMsg, setErrorMsg] = useState('');</p>
+<p class="p2"><span class="Apple-converted-space">            </span></p>
+<p class="p1"><span class="Apple-converted-space">            </span>const recognitionRef = useRef(null);</p>
+<p class="p2"><span class="Apple-converted-space">            </span></p>
+<p class="p1"><span class="Apple-converted-space">            </span>// 使用 useRef 來儲存狀態，讓語音辨識事件能讀取到最新值，不受閉包限制</p>
+<p class="p1"><span class="Apple-converted-space">            </span>const solvedRef = useRef(solvedWords);</p>
+<p class="p1"><span class="Apple-converted-space">            </span>const manualStopRef = useRef(true);<span class="Apple-converted-space"> </span></p>
+<p class="p1"><span class="Apple-converted-space">            </span>const gameStateRef = useRef(gameState);</p>
+<p class="p2"><br></p>
+<p class="p1"><span class="Apple-converted-space">            </span>useEffect(() =&gt; { solvedRef.current = solvedWords; }, [solvedWords]);</p>
+<p class="p1"><span class="Apple-converted-space">            </span>useEffect(() =&gt; { gameStateRef.current = gameState; }, [gameState]);</p>
+<p class="p2"><br></p>
+<p class="p1"><span class="Apple-converted-space">            </span>// --- 判斷過關邏輯 ---</p>
+<p class="p1"><span class="Apple-converted-space">            </span>useEffect(() =&gt; {</p>
+<p class="p1"><span class="Apple-converted-space">                </span>if (solvedWords.length === WORDS.length &amp;&amp; WORDS.length &gt; 0) {</p>
+<p class="p1"><span class="Apple-converted-space">                    </span>// 自動停止麥克風</p>
+<p class="p1"><span class="Apple-converted-space">                    </span>manualStopRef.current = true;</p>
+<p class="p1"><span class="Apple-converted-space">                    </span>if (recognitionRef.current) {</p>
+<p class="p1"><span class="Apple-converted-space">                        </span>recognitionRef.current.stop();</p>
+<p class="p1"><span class="Apple-converted-space">                    </span>}</p>
+<p class="p1"><span class="Apple-converted-space">                    </span>setIsListening(false);</p>
+<p class="p2"><br></p>
+<p class="p1"><span class="Apple-converted-space">                    </span>// 延遲 2.5 秒等待最後一個動畫跑完，再切換到過關畫面</p>
+<p class="p1"><span class="Apple-converted-space">                    </span>const timer = setTimeout(() =&gt; {</p>
+<p class="p1"><span class="Apple-converted-space">                        </span>setGameState('game_complete');</p>
+<p class="p1"><span class="Apple-converted-space">                    </span>}, 2500);</p>
+<p class="p1"><span class="Apple-converted-space">                    </span>return () =&gt; clearTimeout(timer);</p>
+<p class="p1"><span class="Apple-converted-space">                </span>}</p>
+<p class="p1"><span class="Apple-converted-space">            </span>}, [solvedWords]);</p>
+<p class="p2"><br></p>
+<p class="p1"><span class="Apple-converted-space">            </span>// --- 初始化語音辨識 ---</p>
+<p class="p1"><span class="Apple-converted-space">            </span>useEffect(() =&gt; {</p>
+<p class="p1"><span class="Apple-converted-space">                </span>const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;</p>
+<p class="p2"><span class="Apple-converted-space">                </span></p>
+<p class="p1"><span class="Apple-converted-space">                </span>if (!SpeechRecognition) {</p>
+<p class="p1"><span class="Apple-converted-space">                    </span>setErrorMsg('您的瀏覽器不支援語音辨識功能，請使用 Google Chrome。');</p>
+<p class="p1"><span class="Apple-converted-space">                    </span>return;</p>
+<p class="p1"><span class="Apple-converted-space">                </span>}</p>
+<p class="p2"><br></p>
+<p class="p1"><span class="Apple-converted-space">                </span>const recognition = new SpeechRecognition();</p>
+<p class="p1"><span class="Apple-converted-space">                </span>recognition.continuous = true;</p>
+<p class="p1"><span class="Apple-converted-space">                </span>recognition.interimResults = false;</p>
+<p class="p1"><span class="Apple-converted-space">                </span>recognition.lang = 'en-US';<span class="Apple-converted-space"> </span></p>
+<p class="p2"><br></p>
+<p class="p1"><span class="Apple-converted-space">                </span>recognition.onstart = () =&gt; {</p>
+<p class="p1"><span class="Apple-converted-space">                    </span>setIsListening(true);</p>
+<p class="p1"><span class="Apple-converted-space">                    </span>setErrorMsg('');</p>
+<p class="p1"><span class="Apple-converted-space">                </span>};</p>
+<p class="p2"><br></p>
+<p class="p1"><span class="Apple-converted-space">                </span>recognition.onresult = (event) =&gt; {</p>
+<p class="p1"><span class="Apple-converted-space">                    </span>const current = event.resultIndex;</p>
+<p class="p1"><span class="Apple-converted-space">                    </span>const resultText = event.results[current][0].transcript.toLowerCase().trim();</p>
+<p class="p1"><span class="Apple-converted-space">                    </span>setTranscript(resultText);</p>
+<p class="p1"><span class="Apple-converted-space">                    </span>checkMatch(resultText);</p>
+<p class="p1"><span class="Apple-converted-space">                </span>};</p>
+<p class="p2"><br></p>
+<p class="p1"><span class="Apple-converted-space">                </span>recognition.onerror = (event) =&gt; {</p>
+<p class="p1"><span class="Apple-converted-space">                    </span>console.error('Speech recognition error', event.error);</p>
+<p class="p1"><span class="Apple-converted-space">                    </span>if (event.error === 'not-allowed') {</p>
+<p class="p1"><span class="Apple-converted-space">                        </span>setErrorMsg('請允許瀏覽器使用麥克風權限。');</p>
+<p class="p1"><span class="Apple-converted-space">                        </span>manualStopRef.current = true;<span class="Apple-converted-space"> </span></p>
+<p class="p1"><span class="Apple-converted-space">                    </span>}</p>
+<p class="p1"><span class="Apple-converted-space">                    </span>setIsListening(false);</p>
+<p class="p1"><span class="Apple-converted-space">                </span>};</p>
+<p class="p2"><br></p>
+<p class="p1"><span class="Apple-converted-space">                </span>// ★ 真・連續收音邏輯：如果不是使用者手動關閉，且遊戲還在進行中，就自動重啟</p>
+<p class="p1"><span class="Apple-converted-space">                </span>recognition.onend = () =&gt; {</p>
+<p class="p1"><span class="Apple-converted-space">                    </span>setIsListening(false);</p>
+<p class="p1"><span class="Apple-converted-space">                    </span>if (!manualStopRef.current &amp;&amp; gameStateRef.current === 'playing') {</p>
+<p class="p1"><span class="Apple-converted-space">                        </span>try {</p>
+<p class="p1"><span class="Apple-converted-space">                            </span>recognition.start();</p>
+<p class="p1"><span class="Apple-converted-space">                        </span>} catch (e) {</p>
+<p class="p1"><span class="Apple-converted-space">                            </span>console.error("重啟語音失敗", e);</p>
+<p class="p1"><span class="Apple-converted-space">                        </span>}</p>
+<p class="p1"><span class="Apple-converted-space">                    </span>}</p>
+<p class="p1"><span class="Apple-converted-space">                </span>};</p>
+<p class="p2"><br></p>
+<p class="p1"><span class="Apple-converted-space">                </span>recognitionRef.current = recognition;</p>
+<p class="p2"><br></p>
+<p class="p1"><span class="Apple-converted-space">                </span>return () =&gt; {</p>
+<p class="p1"><span class="Apple-converted-space">                    </span>manualStopRef.current = true;</p>
+<p class="p1"><span class="Apple-converted-space">                    </span>if (recognitionRef.current) {</p>
+<p class="p1"><span class="Apple-converted-space">                        </span>recognitionRef.current.stop();</p>
+<p class="p1"><span class="Apple-converted-space">                    </span>}</p>
+<p class="p1"><span class="Apple-converted-space">                </span>};</p>
+<p class="p1"><span class="Apple-converted-space">            </span>}, []);</p>
+<p class="p2"><br></p>
+<p class="p1"><span class="Apple-converted-space">            </span>const checkMatch = useCallback((spokenText) =&gt; {</p>
+<p class="p1"><span class="Apple-converted-space">                </span>const spokenWords = spokenText.replace(/[^a-z0-9\s]/g, '').split(/\s+/);</p>
+<p class="p2"><span class="Apple-converted-space">                </span></p>
+<p class="p1"><span class="Apple-converted-space">                </span>WORDS.forEach(word =&gt; {</p>
+<p class="p1"><span class="Apple-converted-space">                    </span>const isMatched = spokenWords.includes(word.en) ||<span class="Apple-converted-space"> </span></p>
+<p class="p1"><span class="Apple-converted-space">                                      </span>(word.aliases &amp;&amp; word.aliases.some(alias =&gt; spokenWords.includes(alias)));</p>
+<p class="p2"><span class="Apple-converted-space">                    </span></p>
+<p class="p1"><span class="Apple-converted-space">                    </span>if (isMatched &amp;&amp; !solvedRef.current.includes(word.en)) {</p>
+<p class="p1"><span class="Apple-converted-space">                        </span>triggerSolveAnimation(word.en);</p>
+<p class="p1"><span class="Apple-converted-space">                    </span>}</p>
+<p class="p1"><span class="Apple-converted-space">                </span>});</p>
+<p class="p1"><span class="Apple-converted-space">            </span>}, []);</p>
+<p class="p2"><br></p>
+<p class="p1"><span class="Apple-converted-space">            </span>const triggerSolveAnimation = (wordEn) =&gt; {</p>
+<p class="p1"><span class="Apple-converted-space">                </span>setAnimatingWords(prev =&gt; [...prev, wordEn]);</p>
+<p class="p2"><span class="Apple-converted-space">                </span></p>
+<p class="p1"><span class="Apple-converted-space">                </span>setTimeout(() =&gt; {</p>
+<p class="p1"><span class="Apple-converted-space">                    </span>setSolvedWords(prev =&gt; [...prev, wordEn]);</p>
+<p class="p1"><span class="Apple-converted-space">                </span>}, 600);</p>
+<p class="p2"><br></p>
+<p class="p1"><span class="Apple-converted-space">                </span>setTimeout(() =&gt; {</p>
+<p class="p1"><span class="Apple-converted-space">                    </span>setAnimatingWords(prev =&gt; prev.filter(w =&gt; w !== wordEn));</p>
+<p class="p1"><span class="Apple-converted-space">                </span>}, 2000);</p>
+<p class="p1"><span class="Apple-converted-space">            </span>};</p>
+<p class="p2"><br></p>
+<p class="p1"><span class="Apple-converted-space">            </span>const toggleListening = () =&gt; {</p>
+<p class="p1"><span class="Apple-converted-space">                </span>if (errorMsg &amp;&amp; !recognitionRef.current) return;</p>
+<p class="p2"><br></p>
+<p class="p1"><span class="Apple-converted-space">                </span>if (isListening) {</p>
+<p class="p1"><span class="Apple-converted-space">                    </span>manualStopRef.current = true;<span class="Apple-converted-space"> </span></p>
+<p class="p1"><span class="Apple-converted-space">                    </span>recognitionRef.current.stop();</p>
+<p class="p1"><span class="Apple-converted-space">                </span>} else {</p>
+<p class="p1"><span class="Apple-converted-space">                    </span>manualStopRef.current = false;<span class="Apple-converted-space"> </span></p>
+<p class="p1"><span class="Apple-converted-space">                    </span>try {</p>
+<p class="p1"><span class="Apple-converted-space">                        </span>recognitionRef.current.start();</p>
+<p class="p1"><span class="Apple-converted-space">                    </span>} catch (e) {</p>
+<p class="p1"><span class="Apple-converted-space">                        </span>console.error(e);</p>
+<p class="p1"><span class="Apple-converted-space">                    </span>}</p>
+<p class="p1"><span class="Apple-converted-space">                </span>}</p>
+<p class="p1"><span class="Apple-converted-space">            </span>};</p>
+<p class="p2"><br></p>
+<p class="p1"><span class="Apple-converted-space">            </span>const startGame = () =&gt; {</p>
+<p class="p1"><span class="Apple-converted-space">                </span>setGameState('playing');</p>
+<p class="p1"><span class="Apple-converted-space">                </span>setSolvedWords([]);</p>
+<p class="p1"><span class="Apple-converted-space">                </span>setTranscript('');</p>
+<p class="p1"><span class="Apple-converted-space">                </span>setAnimatingWords([]);</p>
+<p class="p2"><span class="Apple-converted-space">                </span></p>
+<p class="p1"><span class="Apple-converted-space">                </span>// 啟動遊戲時自動開啟麥克風</p>
+<p class="p1"><span class="Apple-converted-space">                </span>manualStopRef.current = false;</p>
+<p class="p1"><span class="Apple-converted-space">                </span>setTimeout(() =&gt; {</p>
+<p class="p1"><span class="Apple-converted-space">                    </span>if (recognitionRef.current &amp;&amp; !isListening) {</p>
+<p class="p1"><span class="Apple-converted-space">                        </span>try {</p>
+<p class="p1"><span class="Apple-converted-space">                            </span>recognitionRef.current.start();</p>
+<p class="p1"><span class="Apple-converted-space">                        </span>} catch (e) {}</p>
+<p class="p1"><span class="Apple-converted-space">                    </span>}</p>
+<p class="p1"><span class="Apple-converted-space">                </span>}, 500);</p>
+<p class="p1"><span class="Apple-converted-space">            </span>};</p>
+<p class="p2"><br></p>
+<p class="p1"><span class="Apple-converted-space">            </span>const resetGame = () =&gt; {</p>
+<p class="p1"><span class="Apple-converted-space">                </span>setGameState('start');</p>
+<p class="p1"><span class="Apple-converted-space">                </span>setSolvedWords([]);</p>
+<p class="p1"><span class="Apple-converted-space">                </span>setTranscript('');</p>
+<p class="p1"><span class="Apple-converted-space">                </span>setAnimatingWords([]);</p>
+<p class="p1"><span class="Apple-converted-space">                </span>manualStopRef.current = true;</p>
+<p class="p1"><span class="Apple-converted-space">                </span>if (recognitionRef.current) {</p>
+<p class="p1"><span class="Apple-converted-space">                    </span>recognitionRef.current.stop();</p>
+<p class="p1"><span class="Apple-converted-space">                </span>}</p>
+<p class="p1"><span class="Apple-converted-space">            </span>};</p>
+<p class="p2"><br></p>
+<p class="p1"><span class="Apple-converted-space">            </span>return (</p>
+<p class="p1"><span class="Apple-converted-space">                </span>&lt;div className="min-h-screen bg-slate-50 text-slate-800 font-sans prevent-select p-4 md:p-8"&gt;</p>
+<p class="p2"><span class="Apple-converted-space">                    </span></p>
+<p class="p1"><span class="Apple-converted-space">                    </span>{/* Header */}</p>
+<p class="p1"><span class="Apple-converted-space">                    </span>&lt;header className="bg-white shadow-sm p-4 flex items-center justify-center rounded-2xl mb-8 max-w-4xl mx-auto"&gt;</p>
+<p class="p1"><span class="Apple-converted-space">                        </span>&lt;div className="flex items-center gap-2 font-bold text-xl text-blue-600"&gt;</p>
+<p class="p1"><span class="Apple-converted-space">                            </span>&lt;IconMic className="text-blue-500" /&gt;</p>
+<p class="p1"><span class="Apple-converted-space">                            </span>英語語音達人 - 朗誦篇</p>
+<p class="p1"><span class="Apple-converted-space">                        </span>&lt;/div&gt;</p>
+<p class="p1"><span class="Apple-converted-space">                    </span>&lt;/header&gt;</p>
+<p class="p2"><br></p>
+<p class="p1"><span class="Apple-converted-space">                    </span>&lt;main className="max-w-4xl mx-auto flex flex-col items-center justify-center min-h-[60vh]"&gt;</p>
+<p class="p2"><span class="Apple-converted-space">                        </span></p>
+<p class="p1"><span class="Apple-converted-space">                        </span>{/* --- 狀態 1：開始畫面 --- */}</p>
+<p class="p1"><span class="Apple-converted-space">                        </span>{gameState === 'start' &amp;&amp; (</p>
+<p class="p1"><span class="Apple-converted-space">                            </span>&lt;div className="text-center space-y-8 animate-in fade-in duration-500"&gt;</p>
+<p class="p1"><span class="Apple-converted-space">                                </span>&lt;div className="bg-blue-100 w-32 h-32 rounded-full flex items-center justify-center mx-auto mb-6 shadow-inner"&gt;</p>
+<p class="p1"><span class="Apple-converted-space">                                    </span>&lt;IconMic size={64} className="text-blue-500" /&gt;</p>
+<p class="p1"><span class="Apple-converted-space">                                </span>&lt;/div&gt;</p>
+<p class="p1"><span class="Apple-converted-space">                                </span>&lt;h1 className="text-4xl md:text-5xl font-extrabold text-slate-800 mb-4"&gt;</p>
+<p class="p1"><span class="Apple-converted-space">                                    </span>準備好挑戰語音朗誦了嗎？</p>
+<p class="p1"><span class="Apple-converted-space">                                </span>&lt;/h1&gt;</p>
+<p class="p1"><span class="Apple-converted-space">                                </span>&lt;p className="text-lg text-slate-600 mb-8 max-w-md mx-auto"&gt;</p>
+<p class="p1"><span class="Apple-converted-space">                                    </span>點擊開始後，請允許使用麥克風，並直接對著螢幕唸出卡片上的單字英文！</p>
+<p class="p1"><span class="Apple-converted-space">                                </span>&lt;/p&gt;</p>
+<p class="p1"><span class="Apple-converted-space">                                </span>&lt;button<span class="Apple-converted-space"> </span></p>
+<p class="p1"><span class="Apple-converted-space">                                    </span>onClick={startGame}</p>
+<p class="p1"><span class="Apple-converted-space">                                    </span>className="bg-blue-600 hover:bg-blue-700 text-white text-xl font-bold py-4 px-12 rounded-full shadow-lg shadow-blue-200 transform transition hover:scale-105 active:scale-95 flex items-center gap-2 mx-auto"</p>
+<p class="p1"><span class="Apple-converted-space">                                </span>&gt;</p>
+<p class="p1"><span class="Apple-converted-space">                                    </span>&lt;IconPlay fill="currentColor" /&gt; 開始挑戰</p>
+<p class="p1"><span class="Apple-converted-space">                                </span>&lt;/button&gt;</p>
+<p class="p1"><span class="Apple-converted-space">                            </span>&lt;/div&gt;</p>
+<p class="p1"><span class="Apple-converted-space">                        </span>)}</p>
+<p class="p2"><br></p>
+<p class="p1"><span class="Apple-converted-space">                        </span>{/* --- 狀態 2：遊戲進行中 --- */}</p>
+<p class="p1"><span class="Apple-converted-space">                        </span>{gameState === 'playing' &amp;&amp; (</p>
+<p class="p1"><span class="Apple-converted-space">                            </span>&lt;div className="w-full animate-in zoom-in duration-300"&gt;</p>
+<p class="p1"><span class="Apple-converted-space">                                </span>{/* 麥克風控制區 */}</p>
+<p class="p1"><span class="Apple-converted-space">                                </span>&lt;div className="flex flex-col items-center justify-center mb-10"&gt;</p>
+<p class="p1"><span class="Apple-converted-space">                                    </span>&lt;button</p>
+<p class="p1"><span class="Apple-converted-space">                                        </span>onClick={toggleListening}</p>
+<p class="p1"><span class="Apple-converted-space">                                        </span>className={`w-20 h-20 flex items-center justify-center rounded-full text-white transition-all shadow-lg</p>
+<p class="p1"><span class="Apple-converted-space">                                            </span>${isListening ? 'bg-red-500 mic-active' : 'bg-blue-500 hover:bg-blue-600'}</p>
+<p class="p1"><span class="Apple-converted-space">                                            </span>${errorMsg ? 'opacity-50 cursor-not-allowed' : ''}</p>
+<p class="p1"><span class="Apple-converted-space">                                        </span>`}</p>
+<p class="p1"><span class="Apple-converted-space">                                    </span>&gt;</p>
+<p class="p1"><span class="Apple-converted-space">                                        </span>{isListening ? &lt;IconMic size={36} /&gt; : &lt;IconMicOff size={36} /&gt;}</p>
+<p class="p1"><span class="Apple-converted-space">                                    </span>&lt;/button&gt;</p>
+<p class="p1"><span class="Apple-converted-space">                                    </span>&lt;p className="mt-4 font-bold text-lg text-slate-600"&gt;</p>
+<p class="p1"><span class="Apple-converted-space">                                        </span>{isListening ? '正在持續聆聽您的發音...' : '點擊麥克風開始收音'}</p>
+<p class="p1"><span class="Apple-converted-space">                                    </span>&lt;/p&gt;</p>
+<p class="p2"><span class="Apple-converted-space">                                    </span></p>
+<p class="p1"><span class="Apple-converted-space">                                    </span>{/* 即時語音辨識結果 */}</p>
+<p class="p1"><span class="Apple-converted-space">                                    </span>&lt;div className="h-8 mt-2 text-slate-400"&gt;</p>
+<p class="p1"><span class="Apple-converted-space">                                        </span>{transcript &amp;&amp; &lt;span&gt;系統聽到: &lt;strong className="text-blue-500"&gt;{transcript}&lt;/strong&gt;&lt;/span&gt;}</p>
+<p class="p1"><span class="Apple-converted-space">                                    </span>&lt;/div&gt;</p>
+<p class="p2"><span class="Apple-converted-space">                                    </span></p>
+<p class="p1"><span class="Apple-converted-space">                                    </span>{errorMsg &amp;&amp; (</p>
+<p class="p1"><span class="Apple-converted-space">                                        </span>&lt;p className="mt-2 text-red-500 font-semibold"&gt;{errorMsg}&lt;/p&gt;</p>
+<p class="p1"><span class="Apple-converted-space">                                    </span>)}</p>
+<p class="p1"><span class="Apple-converted-space">                                </span>&lt;/div&gt;</p>
+<p class="p2"><br></p>
+<p class="p1"><span class="Apple-converted-space">                                </span>{/* 單字卡片網格 */}</p>
+<p class="p1"><span class="Apple-converted-space">                                </span>&lt;div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 md:gap-6"&gt;</p>
+<p class="p1"><span class="Apple-converted-space">                                    </span>{WORDS.map((word) =&gt; {</p>
+<p class="p1"><span class="Apple-converted-space">                                        </span>const isSolved = solvedWords.includes(word.en);</p>
+<p class="p1"><span class="Apple-converted-space">                                        </span>const isAnimating = animatingWords.includes(word.en);</p>
+<p class="p2"><span class="Apple-converted-space">                                        </span></p>
+<p class="p1"><span class="Apple-converted-space">                                        </span>return (</p>
+<p class="p1"><span class="Apple-converted-space">                                            </span>&lt;div<span class="Apple-converted-space"> </span></p>
+<p class="p1"><span class="Apple-converted-space">                                                </span>key={word.en}</p>
+<p class="p1"><span class="Apple-converted-space">                                                </span>className={`relative h-40 flex flex-col items-center justify-center rounded-2xl border-4 transition-colors duration-300</p>
+<p class="p1"><span class="Apple-converted-space">                                                    </span>${isSolved ? 'bg-green-100 border-green-400 text-green-700 shadow-inner' : 'bg-white border-slate-200 text-slate-700 shadow-md'}</p>
+<p class="p1"><span class="Apple-converted-space">                                                </span>`}</p>
+<p class="p1"><span class="Apple-converted-space">                                            </span>&gt;</p>
+<p class="p1"><span class="Apple-converted-space">                                                </span>&lt;div className={`flex flex-col items-center justify-center w-full h-full ${isAnimating ? 'animate-fly-up' : ''}`}&gt;</p>
+<p class="p1"><span class="Apple-converted-space">                                                    </span>{isSolved ? (</p>
+<p class="p1"><span class="Apple-converted-space">                                                        </span>&lt;span className="text-4xl md:text-5xl font-black"&gt;{word.en}&lt;/span&gt;</p>
+<p class="p1"><span class="Apple-converted-space">                                                    </span>) : (</p>
+<p class="p1"><span class="Apple-converted-space">                                                        </span>&lt;&gt;</p>
+<p class="p1"><span class="Apple-converted-space">                                                            </span>&lt;span className="text-5xl mb-2"&gt;{word.symbol}&lt;/span&gt;</p>
+<p class="p1"><span class="Apple-converted-space">                                                            </span>&lt;span className="text-xl font-bold"&gt;{word.zh}&lt;/span&gt;</p>
+<p class="p1"><span class="Apple-converted-space">                                                        </span>&lt;/&gt;</p>
+<p class="p1"><span class="Apple-converted-space">                                                    </span>)}</p>
+<p class="p1"><span class="Apple-converted-space">                                                </span>&lt;/div&gt;</p>
+<p class="p1"><span class="Apple-converted-space">                                            </span>&lt;/div&gt;</p>
+<p class="p1"><span class="Apple-converted-space">                                        </span>);</p>
+<p class="p1"><span class="Apple-converted-space">                                    </span>})}</p>
+<p class="p1"><span class="Apple-converted-space">                                </span>&lt;/div&gt;</p>
+<p class="p1"><span class="Apple-converted-space">                            </span>&lt;/div&gt;</p>
+<p class="p1"><span class="Apple-converted-space">                        </span>)}</p>
+<p class="p2"><br></p>
+<p class="p1"><span class="Apple-converted-space">                        </span>{/* --- 狀態 3：過關畫面 --- */}</p>
+<p class="p1"><span class="Apple-converted-space">                        </span>{gameState === 'game_complete' &amp;&amp; (</p>
+<p class="p1"><span class="Apple-converted-space">                            </span>&lt;div className="text-center space-y-6 animate-in zoom-in duration-700"&gt;</p>
+<p class="p1"><span class="Apple-converted-space">                                </span>&lt;div className="bg-yellow-100 w-40 h-40 rounded-full flex items-center justify-center mx-auto mb-6 shadow-xl"&gt;</p>
+<p class="p1"><span class="Apple-converted-space">                                    </span>&lt;IconTrophy size={80} className="text-yellow-500" /&gt;</p>
+<p class="p1"><span class="Apple-converted-space">                                </span>&lt;/div&gt;</p>
+<p class="p1"><span class="Apple-converted-space">                                </span>&lt;h1 className="text-5xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-yellow-500 to-orange-500 pb-2"&gt;</p>
+<p class="p1"><span class="Apple-converted-space">                                    </span>口說大師誕生！</p>
+<p class="p1"><span class="Apple-converted-space">                                </span>&lt;/h1&gt;</p>
+<p class="p1"><span class="Apple-converted-space">                                </span>&lt;p className="text-2xl text-slate-600 max-w-md mx-auto"&gt;</p>
+<p class="p1"><span class="Apple-converted-space">                                    </span>發音非常標準！你已經成功解開了所有的單字卡片。</p>
+<p class="p1"><span class="Apple-converted-space">                                </span>&lt;/p&gt;</p>
+<p class="p1"><span class="Apple-converted-space">                                </span>&lt;button<span class="Apple-converted-space"> </span></p>
+<p class="p1"><span class="Apple-converted-space">                                    </span>onClick={resetGame}</p>
+<p class="p1"><span class="Apple-converted-space">                                    </span>className="mt-8 bg-slate-800 hover:bg-slate-900 text-white text-xl font-bold py-4 px-10 rounded-full shadow-lg transform transition hover:scale-105 flex items-center gap-2 mx-auto"</p>
+<p class="p1"><span class="Apple-converted-space">                                </span>&gt;</p>
+<p class="p1"><span class="Apple-converted-space">                                    </span>&lt;IconRefreshCcw /&gt; 再挑戰一次</p>
+<p class="p1"><span class="Apple-converted-space">                                </span>&lt;/button&gt;</p>
+<p class="p1"><span class="Apple-converted-space">                            </span>&lt;/div&gt;</p>
+<p class="p1"><span class="Apple-converted-space">                        </span>)}</p>
+<p class="p2"><br></p>
+<p class="p1"><span class="Apple-converted-space">                    </span>&lt;/main&gt;</p>
+<p class="p1"><span class="Apple-converted-space">                </span>&lt;/div&gt;</p>
+<p class="p1"><span class="Apple-converted-space">            </span>);</p>
+<p class="p1"><span class="Apple-converted-space">        </span>}</p>
+<p class="p2"><br></p>
+<p class="p1"><span class="Apple-converted-space">        </span>const root = ReactDOM.createRoot(document.getElementById('root'));</p>
+<p class="p1"><span class="Apple-converted-space">        </span>root.render(&lt;App /&gt;);</p>
+<p class="p1"><span class="Apple-converted-space">    </span>&lt;/script&gt;</p>
+<p class="p1">&lt;/body&gt;</p>
+<p class="p1">&lt;/html&gt;</p>
+</body>
+</html>
