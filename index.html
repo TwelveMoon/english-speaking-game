@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>英語語音達人 - 職業篇</title>
+    <title>池東國小英語學習站</title>
     
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
@@ -11,353 +11,193 @@
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
 
     <style>
-        /* 飛起特效動畫 (時間約兩秒) */
-        @keyframes flyUpReveal {
-            0% { transform: translateY(0) scale(1); opacity: 1; }
-            30% { transform: translateY(-30px) scale(1.1); opacity: 0; }
-            40% { transform: translateY(-30px) scale(1.1); opacity: 0; }
-            70% { transform: translateY(0) scale(1.05); opacity: 1; }
-            100% { transform: translateY(0) scale(1); opacity: 1; }
-        }
-        .animate-fly-up {
-            animation: flyUpReveal 2s ease-in-out forwards;
-        }
-        
         .prevent-select {
             user-select: none;
             -webkit-user-select: none;
         }
-
-        /* 麥克風收音時的脈衝動畫 */
-        @keyframes pulse-ring {
-            0% { box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.5); }
-            70% { box-shadow: 0 0 0 15px rgba(59, 130, 246, 0); }
-            100% { box-shadow: 0 0 0 0 rgba(59, 130, 246, 0); }
+        /* 簡單的淡入動畫 */
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
         }
-        .mic-active {
-            animation: pulse-ring 1.5s infinite;
+        .animate-fade-in {
+            animation: fadeIn 0.4s ease-out forwards;
         }
     </style>
 </head>
-<body>
+<body class="bg-slate-100 text-slate-800 font-sans prevent-select">
     <div id="root"></div>
 
     <script type="text/babel">
-        const { useState, useEffect, useRef, useCallback } = React;
+        const { useState } = React;
 
-        // --- 題庫區 (三年級職業單字) ---
-        // 加入可能發生的辨識誤差到 aliases 中
-        const WORDS = [
-            { en: 'a cook', zh: '廚師', symbol: '🧑‍🍳', aliases: ['cook', 'cooks'] },
-            { en: 'a doctor', zh: '醫生', symbol: '👨‍⚕️', aliases: ['doctor', 'doctors'] },
-            { en: 'a nurse', zh: '護士', symbol: '👩‍⚕️', aliases: ['nurse', 'nurses'] },
-            { en: 'a student', zh: '學生', symbol: '🧑‍🎓', aliases: ['student', 'students'] },
-            { en: 'a teacher', zh: '教師', symbol: '🧑‍🏫', aliases: ['teacher', 'teachers'] }
+        // --- 選單資料設定 ---
+        const GRADES = [
+            { id: 'g3', label: '三年級' },
+            { id: 'g4', label: '四年級' },
+            { id: 'g5', label: '五年級' },
+            { id: 'g6', label: '六年級' }
         ];
 
-        // --- Icons ---
-        const IconStar = ({ size = 24, className = "", fill = "none" }) => (
-            <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill={fill} stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>
-        );
-        const IconTrophy = ({ size = 24, className = "" }) => (
-            <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"></path><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"></path><path d="M4 22h16"></path><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"></path><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"></path><path d="M18 2H6v7c0 6 6 10 6 10s6-4 6-10V2z"></path></svg>
-        );
-        const IconRefreshCcw = ({ size = 24, className = "" }) => (
-            <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><polyline points="1 4 1 10 7 10"></polyline><polyline points="23 20 23 14 17 14"></polyline><path d="M20.49 9A9 9 0 0 0 5.64 5.64L1 10m22 4l-4.64 4.36A9 9 0 0 1 3.51 15"></path></svg>
-        );
-        const IconPlay = ({ size = 24, className = "", fill="none" }) => (
-            <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill={fill} stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
-        );
-        const IconMic = ({ size = 24, className = "" }) => (
-            <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"></path><path d="M19 10v2a7 7 0 0 1-14 0v-2"></path><line x1="12" y1="19" x2="12" y2="22"></line></svg>
-        );
-        const IconMicOff = ({ size = 24, className = "" }) => (
-            <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><line x1="2" y1="2" x2="22" y2="22"></line><path d="M18.89 13.23A7.12 7.12 0 0 0 19 12v-2"></path><path d="M5 10v2a7 7 0 0 0 12 5l-2.7-2.7a4.5 4.5 0 0 1-6.3-6.3L5 6.13Z"></path><path d="M15 9.34V5a3 3 0 0 0-5.68-1.33l1.67 1.67H11a1 1 0 0 1 1 1v2.34Z"></path><line x1="12" y1="19" x2="12" y2="22"></line></svg>
-        );
+        const SEMESTERS = [
+            { id: 's1', label: '上學期' },
+            { id: 's2', label: '下學期' }
+        ];
+
+        const LESSONS = [
+            { id: 'l1', label: '第一課' },
+            { id: 'l2', label: '第二課' },
+            { id: 'l3', label: '第三課' },
+            { id: 'l4', label: '第四課' }
+        ];
+
+        const ACTIVITIES = [
+            { id: 'vocab', label: '單字挑戰', icon: '📝', color: 'bg-blue-500 hover:bg-blue-600' },
+            { id: 'sentence', label: '句型朗誦', icon: '🗣️', color: 'bg-emerald-500 hover:bg-emerald-600' },
+            { id: 'text', label: '課文跟讀', icon: '📖', color: 'bg-amber-500 hover:bg-amber-600' }
+        ];
 
         function App() {
-            const [gameState, setGameState] = useState('start'); // start, playing, game_complete
-            const [isListening, setIsListening] = useState(false);
-            const [transcript, setTranscript] = useState('');
-            const [solvedWords, setSolvedWords] = useState([]);
-            const [animatingWords, setAnimatingWords] = useState([]);
-            const [errorMsg, setErrorMsg] = useState('');
-            
-            const recognitionRef = useRef(null);
-            
-            // 使用 useRef 來儲存狀態，讓語音辨識事件能讀取到最新值，不受閉包限制
-            const solvedRef = useRef(solvedWords);
-            const manualStopRef = useRef(true); 
-            const gameStateRef = useRef(gameState);
+            const [selectedGrade, setSelectedGrade] = useState(null);
+            const [selectedSemester, setSelectedSemester] = useState(null);
+            const [selectedLesson, setSelectedLesson] = useState(null);
 
-            useEffect(() => { solvedRef.current = solvedWords; }, [solvedWords]);
-            useEffect(() => { gameStateRef.current = gameState; }, [gameState]);
-
-            // --- 判斷過關邏輯 ---
-            useEffect(() => {
-                if (solvedWords.length === WORDS.length && WORDS.length > 0) {
-                    // 自動停止麥克風
-                    manualStopRef.current = true;
-                    if (recognitionRef.current) {
-                        recognitionRef.current.stop();
-                    }
-                    setIsListening(false);
-
-                    // 延遲 2.5 秒等待最後一個動畫跑完，再切換到過關畫面
-                    const timer = setTimeout(() => {
-                        setGameState('game_complete');
-                    }, 2500);
-                    return () => clearTimeout(timer);
-                }
-            }, [solvedWords]);
-
-            // --- 初始化語音辨識 ---
-            useEffect(() => {
-                const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-                
-                if (!SpeechRecognition) {
-                    setErrorMsg('您的瀏覽器不支援語音辨識功能，請使用 Google Chrome。');
-                    return;
-                }
-
-                const recognition = new SpeechRecognition();
-                recognition.continuous = true;
-                recognition.interimResults = false;
-                recognition.lang = 'en-US'; 
-
-                recognition.onstart = () => {
-                    setIsListening(true);
-                    setErrorMsg('');
-                };
-
-                recognition.onresult = (event) => {
-                    const current = event.resultIndex;
-                    // 將結果轉小寫並去除前後空白
-                    const resultText = event.results[current][0].transcript.toLowerCase().trim();
-                    setTranscript(resultText);
-                    checkMatch(resultText);
-                };
-
-                recognition.onerror = (event) => {
-                    console.error('Speech recognition error', event.error);
-                    if (event.error === 'not-allowed') {
-                        setErrorMsg('請允許瀏覽器使用麥克風權限。');
-                        manualStopRef.current = true; 
-                    }
-                    setIsListening(false);
-                };
-
-                // ★ 真・連續收音邏輯：如果不是使用者手動關閉，且遊戲還在進行中，就自動重啟
-                recognition.onend = () => {
-                    setIsListening(false);
-                    if (!manualStopRef.current && gameStateRef.current === 'playing') {
-                        try {
-                            recognition.start();
-                        } catch (e) {
-                            console.error("重啟語音失敗", e);
-                        }
-                    }
-                };
-
-                recognitionRef.current = recognition;
-
-                return () => {
-                    manualStopRef.current = true;
-                    if (recognitionRef.current) {
-                        recognitionRef.current.stop();
-                    }
-                };
-            }, []);
-
-            const checkMatch = useCallback((spokenText) => {
-                // 將語音結果字串轉換為單字陣列進行比對，移除了嚴格的標點符號過濾，保留 a 等冠詞
-                const spokenWords = spokenText.split(/\s+/);
-                // 為了處理 "a cook" 這種多字詞，我們同時也比對完整的字串
-                const normalizedSpokenText = spokenText.replace(/[^a-z0-9\s]/g, '');
-
-                WORDS.forEach(word => {
-                    // 1. 檢查是否整句完全相符 (例如念出 "a cook")
-                    // 2. 檢查單字是否出現在念出的單字中 (例如單獨念出 "cook")
-                    // 3. 檢查 aliases
-                    
-                    const isMatched = 
-                        normalizedSpokenText.includes(word.en.replace(/[^a-z0-9\s]/g, '')) ||
-                        spokenWords.some(sw => word.en.split(' ').includes(sw)) ||
-                        (word.aliases && word.aliases.some(alias => spokenWords.includes(alias)));
-                    
-                    if (isMatched && !solvedRef.current.includes(word.en)) {
-                        triggerSolveAnimation(word.en);
-                    }
-                });
-            }, []);
-
-            const triggerSolveAnimation = (wordEn) => {
-                setAnimatingWords(prev => [...prev, wordEn]);
-                
-                setTimeout(() => {
-                    setSolvedWords(prev => [...prev, wordEn]);
-                }, 600);
-
-                setTimeout(() => {
-                    setAnimatingWords(prev => prev.filter(w => w !== wordEn));
-                }, 2000);
-            };
-
-            const toggleListening = () => {
-                if (errorMsg && !recognitionRef.current) return;
-
-                if (isListening) {
-                    manualStopRef.current = true; 
-                    recognitionRef.current.stop();
-                } else {
-                    manualStopRef.current = false; 
-                    try {
-                        recognitionRef.current.start();
-                    } catch (e) {
-                        console.error(e);
-                    }
+            // 處理重置選擇
+            const resetSelection = (level) => {
+                if (level === 'grade') {
+                    setSelectedGrade(null);
+                    setSelectedSemester(null);
+                    setSelectedLesson(null);
+                } else if (level === 'semester') {
+                    setSelectedSemester(null);
+                    setSelectedLesson(null);
+                } else if (level === 'lesson') {
+                    setSelectedLesson(null);
                 }
             };
 
-            const startGame = () => {
-                setGameState('playing');
-                setSolvedWords([]);
-                setTranscript('');
-                setAnimatingWords([]);
+            // 組合網址並跳轉
+            const handleActivityClick = (activityId) => {
+                // 網址命名規則範例： g3-s2-l1-vocab
+                const folderName = `${selectedGrade.id}-${selectedSemester.id}-${selectedLesson.id}-${activityId}`;
                 
-                // 啟動遊戲時自動開啟麥克風
-                manualStopRef.current = false;
-                setTimeout(() => {
-                    if (recognitionRef.current && !isListening) {
-                        try {
-                            recognitionRef.current.start();
-                        } catch (e) {}
-                    }
-                }, 500);
-            };
-
-            const resetGame = () => {
-                setGameState('start');
-                setSolvedWords([]);
-                setTranscript('');
-                setAnimatingWords([]);
-                manualStopRef.current = true;
-                if (recognitionRef.current) {
-                    recognitionRef.current.stop();
-                }
+                // 跳轉至該資料夾 (假設遊戲檔案都放在專案對應名稱的資料夾內)
+                window.location.href = `./${folderName}/`;
             };
 
             return (
-                <div className="min-h-screen bg-slate-50 text-slate-800 font-sans prevent-select p-4 md:p-8">
+                <div className="min-h-screen p-4 md:p-8 max-w-4xl mx-auto">
                     
-                    {/* Header */}
-                    <header className="bg-white shadow-sm p-4 flex items-center justify-center rounded-2xl mb-8 max-w-4xl mx-auto">
-                        <div className="flex items-center gap-2 font-bold text-xl text-blue-600">
-                            <IconMic className="text-blue-500" />
-                            英語語音達人 - 職業篇
-                        </div>
+                    <header className="text-center mb-10 mt-4">
+                        <h1 className="text-4xl md:text-5xl font-extrabold text-blue-700 mb-3 drop-shadow-sm">
+                            英語語音挑戰站
+                        </h1>
+                        <p className="text-slate-500 text-lg">請依序選擇年級與課次來開始挑戰</p>
                     </header>
 
-                    <main className="max-w-4xl mx-auto flex flex-col items-center justify-center min-h-[60vh]">
+                    <main className="space-y-6">
                         
-                        {/* --- 狀態 1：開始畫面 --- */}
-                        {gameState === 'start' && (
-                            <div className="text-center space-y-8 animate-in fade-in duration-500">
-                                <div className="bg-blue-100 w-32 h-32 rounded-full flex items-center justify-center mx-auto mb-6 shadow-inner">
-                                    <IconMic size={64} className="text-blue-500" />
-                                </div>
-                                <h1 className="text-4xl md:text-5xl font-extrabold text-slate-800 mb-4">
-                                    準備好挑戰職業單字了嗎？
-                                </h1>
-                                <p className="text-lg text-slate-600 mb-8 max-w-md mx-auto">
-                                    點擊開始後，請允許使用麥克風，並直接對著螢幕唸出卡片上的職業英文！
-                                </p>
-                                <button 
-                                    onClick={startGame}
-                                    className="bg-blue-600 hover:bg-blue-700 text-white text-xl font-bold py-4 px-12 rounded-full shadow-lg shadow-blue-200 transform transition hover:scale-105 active:scale-95 flex items-center gap-2 mx-auto"
-                                >
-                                    <IconPlay fill="currentColor" /> 開始挑戰
-                                </button>
+                        {/* 步驟 1：選擇年級 */}
+                        <section className="bg-white rounded-2xl shadow-sm p-6 border-2 border-slate-100">
+                            <div className="flex justify-between items-center mb-4">
+                                <h2 className="text-xl font-bold text-slate-700">1. 選擇年級</h2>
+                                {selectedGrade && (
+                                    <button onClick={() => resetSelection('grade')} className="text-sm text-slate-400 hover:text-red-500 font-bold">
+                                        重新選擇
+                                    </button>
+                                )}
                             </div>
-                        )}
-
-                        {/* --- 狀態 2：遊戲進行中 --- */}
-                        {gameState === 'playing' && (
-                            <div className="w-full animate-in zoom-in duration-300">
-                                {/* 麥克風控制區 */}
-                                <div className="flex flex-col items-center justify-center mb-10">
+                            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                                {GRADES.map(grade => (
                                     <button
-                                        onClick={toggleListening}
-                                        className={`w-20 h-20 flex items-center justify-center rounded-full text-white transition-all shadow-lg
-                                            ${isListening ? 'bg-red-500 mic-active' : 'bg-blue-500 hover:bg-blue-600'}
-                                            ${errorMsg ? 'opacity-50 cursor-not-allowed' : ''}
+                                        key={grade.id}
+                                        onClick={() => { setSelectedGrade(grade); setSelectedSemester(null); setSelectedLesson(null); }}
+                                        className={`py-4 rounded-xl font-bold text-lg transition-all border-2
+                                            ${selectedGrade?.id === grade.id 
+                                                ? 'bg-blue-100 border-blue-500 text-blue-700 shadow-inner' 
+                                                : 'bg-slate-50 border-slate-200 text-slate-600 hover:bg-blue-50 hover:border-blue-300'}
                                         `}
                                     >
-                                        {isListening ? <IconMic size={36} /> : <IconMicOff size={36} />}
+                                        {grade.label}
                                     </button>
-                                    <p className="mt-4 font-bold text-lg text-slate-600">
-                                        {isListening ? '正在持續聆聽您的發音...' : '點擊麥克風開始收音'}
-                                    </p>
-                                    
-                                    {/* 即時語音辨識結果 */}
-                                    <div className="h-8 mt-2 text-slate-400">
-                                        {transcript && <span>系統聽到: <strong className="text-blue-500">{transcript}</strong></span>}
-                                    </div>
-                                    
-                                    {errorMsg && (
-                                        <p className="mt-2 text-red-500 font-semibold">{errorMsg}</p>
+                                ))}
+                            </div>
+                        </section>
+
+                        {/* 步驟 2：選擇學期 */}
+                        {selectedGrade && (
+                            <section className="bg-white rounded-2xl shadow-sm p-6 border-2 border-slate-100 animate-fade-in">
+                                <div className="flex justify-between items-center mb-4">
+                                    <h2 className="text-xl font-bold text-slate-700">2. 選擇學期</h2>
+                                    {selectedSemester && (
+                                        <button onClick={() => resetSelection('semester')} className="text-sm text-slate-400 hover:text-red-500 font-bold">
+                                            重新選擇
+                                        </button>
                                     )}
                                 </div>
-
-                                {/* 單字卡片網格 */}
-                                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 md:gap-6">
-                                    {WORDS.map((word) => {
-                                        const isSolved = solvedWords.includes(word.en);
-                                        const isAnimating = animatingWords.includes(word.en);
-                                        
-                                        return (
-                                            <div 
-                                                key={word.en}
-                                                className={`relative h-40 flex flex-col items-center justify-center rounded-2xl border-4 transition-colors duration-300
-                                                    ${isSolved ? 'bg-green-100 border-green-400 text-green-700 shadow-inner' : 'bg-white border-slate-200 text-slate-700 shadow-md'}
-                                                `}
-                                            >
-                                                <div className={`flex flex-col items-center justify-center w-full h-full ${isAnimating ? 'animate-fly-up' : ''}`}>
-                                                    {isSolved ? (
-                                                        <span className="text-3xl md:text-4xl font-black">{word.en}</span>
-                                                    ) : (
-                                                        <>
-                                                            <span className="text-5xl mb-2">{word.symbol}</span>
-                                                            <span className="text-xl font-bold">{word.zh}</span>
-                                                        </>
-                                                    )}
-                                                </div>
-                                            </div>
-                                        );
-                                    })}
+                                <div className="grid grid-cols-2 gap-4">
+                                    {SEMESTERS.map(semester => (
+                                        <button
+                                            key={semester.id}
+                                            onClick={() => { setSelectedSemester(semester); setSelectedLesson(null); }}
+                                            className={`py-4 rounded-xl font-bold text-lg transition-all border-2
+                                                ${selectedSemester?.id === semester.id 
+                                                    ? 'bg-indigo-100 border-indigo-500 text-indigo-700 shadow-inner' 
+                                                    : 'bg-slate-50 border-slate-200 text-slate-600 hover:bg-indigo-50 hover:border-indigo-300'}
+                                            `}
+                                        >
+                                            {semester.label}
+                                        </button>
+                                    ))}
                                 </div>
-                            </div>
+                            </section>
                         )}
 
-                        {/* --- 狀態 3：過關畫面 --- */}
-                        {gameState === 'game_complete' && (
-                            <div className="text-center space-y-6 animate-in zoom-in duration-700">
-                                <div className="bg-yellow-100 w-40 h-40 rounded-full flex items-center justify-center mx-auto mb-6 shadow-xl">
-                                    <IconTrophy size={80} className="text-yellow-500" />
+                        {/* 步驟 3：選擇課次 */}
+                        {selectedSemester && (
+                            <section className="bg-white rounded-2xl shadow-sm p-6 border-2 border-slate-100 animate-fade-in">
+                                <div className="flex justify-between items-center mb-4">
+                                    <h2 className="text-xl font-bold text-slate-700">3. 選擇課次</h2>
                                 </div>
-                                <h1 className="text-5xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-yellow-500 to-orange-500 pb-2">
-                                    口說大師誕生！
-                                </h1>
-                                <p className="text-2xl text-slate-600 max-w-md mx-auto">
-                                    發音非常標準！你已經成功解開了所有的職業單字卡片。
-                                </p>
-                                <button 
-                                    onClick={resetGame}
-                                    className="mt-8 bg-slate-800 hover:bg-slate-900 text-white text-xl font-bold py-4 px-10 rounded-full shadow-lg transform transition hover:scale-105 flex items-center gap-2 mx-auto"
-                                >
-                                    <IconRefreshCcw /> 再挑戰一次
-                                </button>
-                            </div>
+                                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                                    {LESSONS.map(lesson => (
+                                        <button
+                                            key={lesson.id}
+                                            onClick={() => setSelectedLesson(lesson)}
+                                            className={`py-4 rounded-xl font-bold text-lg transition-all border-2
+                                                ${selectedLesson?.id === lesson.id 
+                                                    ? 'bg-purple-100 border-purple-500 text-purple-700 shadow-inner' 
+                                                    : 'bg-slate-50 border-slate-200 text-slate-600 hover:bg-purple-50 hover:border-purple-300'}
+                                            `}
+                                        >
+                                            {lesson.label}
+                                        </button>
+                                    ))}
+                                </div>
+                            </section>
+                        )}
+
+                        {/* 步驟 4：選擇挑戰模式 (最終入口) */}
+                        {selectedLesson && (
+                            <section className="bg-white rounded-2xl shadow-md p-6 border-2 border-blue-200 animate-fade-in mt-8">
+                                <h2 className="text-2xl font-black text-center text-slate-800 mb-2">
+                                    {selectedGrade.label} {selectedSemester.label} {selectedLesson.label}
+                                </h2>
+                                <p className="text-center text-slate-500 mb-6">準備好麥克風，選擇一項挑戰開始！</p>
+                                
+                                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                    {ACTIVITIES.map(activity => (
+                                        <button
+                                            key={activity.id}
+                                            onClick={() => handleActivityClick(activity.id)}
+                                            className={`${activity.color} text-white py-6 rounded-2xl font-bold text-2xl flex flex-col items-center justify-center gap-3 transition-transform hover:scale-105 active:scale-95 shadow-md`}
+                                        >
+                                            <span className="text-4xl">{activity.icon}</span>
+                                            {activity.label}
+                                        </button>
+                                    ))}
+                                </div>
+                            </section>
                         )}
 
                     </main>
