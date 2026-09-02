@@ -183,7 +183,7 @@
             	for (let word of WORDS) {
                 	if (solvedRef.current.includes(word.en)) continue;
  
-                	const normalizedWordEn = word.en.replace(/[^a-z0-9\s]/g, '').trim();
+                	const normalizedWordEn = word.en.toLowerCase().replace(/[^a-z0-9\s]/g, '').trim();
                 	const paddedTarget = ` ${normalizedWordEn} `;
                 	const mappedTarget = numberMap[normalizedWordEn] ? ` ${numberMap[normalizedWordEn]} ` : null;
  
