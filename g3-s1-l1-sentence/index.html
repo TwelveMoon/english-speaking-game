@@ -31,7 +31,8 @@
             100% { transform: translateX(0); opacity: 1; }
         }
         .success-flash {
-            animation: successFlash 0.8s ease-out forwards;
+            /* ★ 修改 1：將過關動畫縮短為 0.5 秒 */
+            animation: successFlash 0.5s ease-out forwards;
         }
         @keyframes successFlash {
             0% { background-color: #dcfce7; transform: scale(1); }
@@ -139,7 +140,6 @@
                     if (isProcessingRef.current) return;
 
                     let fullTranscript = '';
-                    // 修正 1：迴圈從 0 開始，保留這題開始後的所有停頓片段
                     for (let i = 0; i < event.results.length; ++i) {
                         fullTranscript += event.results[i][0].transcript + ' ';
                     }
@@ -180,13 +180,11 @@
                 const targetText = currentSentenceObj.en.toLowerCase().replace(/['']/g, ''); 
                 const targetWords = targetText.replace(/[^a-z0-9\s]/g, '').trim().split(/\s+/);
 
-                // 修正 2：數字轉換對照表
                 const numberMap = {
                     'one': '1', 'two': '2', 'three': '3', 'four': '4', 'five': '5',
                     'six': '6', 'seven': '7', 'eight': '8', 'nine': '9', 'ten': '10'
                 };
 
-                // 修正 3：嚴格比對機制，預設為 true，只要有一個字沒念到就判定失敗
                 let isPerfectMatch = true;
 
                 targetWords.forEach(tw => {
@@ -225,20 +223,22 @@
                     recognitionRef.current.stop();
                 }
                 
+                // ★ 修改 2：將等待時間從 1200ms 大幅縮短為 400ms
                 setTimeout(() => {
                     setTranscript('');
                     setCurrentIndex(prev => prev + 1);
                     setIsSuccessAnim(false);
 
+                    // 100ms 後瞬間重啟麥克風，總計冷卻時間約為 0.5 秒
                     setTimeout(() => {
                         manualStopRef.current = false;
                         if (gameStateRef.current === 'playing') {
                             try { recognitionRef.current.start(); } catch(e) {}
                         }
                         isProcessingRef.current = false;
-                    }, 300);
+                    }, 100);
                     
-                }, 1200);
+                }, 400);
             };
 
             const toggleListening = () => {
