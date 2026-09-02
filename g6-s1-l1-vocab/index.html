@@ -212,33 +212,35 @@
             }, []);
  
             const triggerSolveAnimation = (wordEn) => {
-            	if (isProcessingRef.current) return;
-            	isProcessingRef.current = true; // 鎖定狀態
-            	
-            	// 強制停止麥克風，清空累積記憶
-            	if (recognitionRef.current) {
+                if (isProcessingRef.current) return;
+                isProcessingRef.current = true; // 鎖定狀態
+                
+                // 強制停止麥克風，清空累積記憶
+                if (recognitionRef.current) {
                     recognitionRef.current.stop();
-            	}
- 
-            	setAnimatingWords(prev => [...prev, wordEn]);
-            	
-            	setTimeout(() => {
-                	setSolvedWords(prev => [...prev, wordEn]);
-            	}, 600);
- 
-            	// ★ 1.2 秒冷卻時間後才解鎖並重啟麥克風
-            	setTimeout(() => {
-                	setAnimatingWords(prev => prev.filter(w => w !== wordEn));
-                	setTranscript('');
-                	
-                	setTimeout(() => {
-                    	manualStopRef.current = false;
-                    	if (gameStateRef.current === 'playing') {
-                        	try { recognitionRef.current.start(); } catch(e) {}
-                    	}
-                    	isProcessingRef.current = false; // 解除鎖定
-                	}, 300);
-            	}, 1200);
+                }
+
+                setAnimatingWords(prev => [...prev, wordEn]);
+                
+                // 1. 卡片翻轉顯示的時間 (稍微加快至 0.3 秒)
+                setTimeout(() => {
+                    setSolvedWords(prev => [...prev, wordEn]);
+                }, 300);
+
+                // 2. 麥克風冷卻時間 (縮短為 0.5 秒)
+                setTimeout(() => {
+                    setTranscript('');
+                    manualStopRef.current = false;
+                    if (gameStateRef.current === 'playing') {
+                        try { recognitionRef.current.start(); } catch(e) {}
+                    }
+                    isProcessingRef.current = false; // 提早解除鎖定，準備接受下一個單字
+                }, 500);
+
+                // 3. 讓卡片的飛起特效完整跑完，不被提早卡斷 (維持 2 秒)
+                setTimeout(() => {
+                    setAnimatingWords(prev => prev.filter(w => w !== wordEn));
+                }, 2000);
             };
  
             const toggleListening = () => {
