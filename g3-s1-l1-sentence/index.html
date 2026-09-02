@@ -46,16 +46,32 @@
     <script type="text/babel">
         const { useState, useEffect, useRef, useCallback } = React;
 
-        // --- 句型題庫區 ---
-        // 依照三年級上學期第一課內容設計
+        // --- 句型題庫區 (三年級上學期第一課：年齡詢問與單字抽換) ---
         const SENTENCES = [
-            { en: "Happy birthday!", zh: "生日快樂！" },
-            { en: "Thank you.", zh: "謝謝你。" },
-            { en: "You're welcome.", zh: "不客氣。" },
+            // 核心句型與單字抽換練習
             { en: "How old are you?", zh: "你幾歲？" },
+            { en: "I'm six.", zh: "我六歲。" },
+            { en: "I'm six years old.", zh: "我六歲。" },
+
+            { en: "How old are you?", zh: "你幾歲？" },
+            { en: "I'm seven.", zh: "我七歲。" },
+            { en: "I'm seven years old.", zh: "我七歲。" },
+
+            { en: "How old are you?", zh: "你幾歲？" },
+            { en: "I'm eight.", zh: "我八歲。" },
             { en: "I'm eight years old.", zh: "我八歲。" },
+
+            { en: "How old are you?", zh: "你幾歲？" },
             { en: "I'm nine.", zh: "我九歲。" },
-            { en: "This is for you.", zh: "這是給你的。" }
+            { en: "I'm nine years old.", zh: "我九歲。" },
+
+            { en: "How old are you?", zh: "你幾歲？" },
+            { en: "I'm ten.", zh: "我十歲。" },
+            { en: "I'm ten years old.", zh: "我十歲。" },
+
+            // 補充句型
+            { en: "Thank you.", zh: "謝謝你。" },
+            { en: "You're welcome.", zh: "不客氣。" }
         ];
 
         // --- Icons ---
