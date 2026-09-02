@@ -46,9 +46,9 @@
     <script type="text/babel">
         const { useState, useEffect, useRef, useCallback } = React;
 
-        // --- 句型題庫區 (五年級上學期第一課) ---
+        // --- 句型題庫區 (五年級上學期第一課：擴充版) ---
         const SENTENCES = [
-            // 第一部分：第一/二人稱對話
+            // --- You 練習 (3題) ---
             { en: "Do you like coffee?", zh: "你喜歡咖啡嗎？" },
             { en: "Yes, I do.", zh: "是的，我喜歡。" },
 
@@ -56,18 +56,32 @@
             { en: "No, I don't.", zh: "不，我不喜歡。" },
             { en: "I like lemonade.", zh: "我喜歡檸檬水。" },
 
-            // 第二部分：第三人稱單數對話
-            { en: "Does he like tea?", zh: "他喜歡茶嗎？" },
+            { en: "Do you like bubble tea?", zh: "你喜歡珍珠奶茶嗎？" },
+            { en: "Yes, I do.", zh: "是的，我喜歡。" },
+
+            // --- They 練習 (2題) ---
+            { en: "Do they like tea?", zh: "他們喜歡茶嗎？" },
+            { en: "Yes, they do.", zh: "是的，他們喜歡。" },
+
+            { en: "Do they like hot chocolate?", zh: "他們喜歡熱巧克力嗎？" },
+            { en: "No, they don't.", zh: "不，他們不喜歡。" },
+            { en: "They like soy milk.", zh: "他們喜歡豆漿。" },
+
+            // --- He 練習 (2題：包含代名詞與專有名詞) ---
+            { en: "Does he like soy milk?", zh: "他喜歡豆漿嗎？" },
             { en: "Yes, he does.", zh: "是的，他喜歡。" },
 
-            { en: "Does she like bubble tea?", zh: "她喜歡珍珠奶茶嗎？" },
-            { en: "No, she doesn't.", zh: "不，她不喜歡。" },
-            { en: "She likes hot chocolate.", zh: "她喜歡熱巧克力。" },
+            { en: "Does Kevin like lemonade?", zh: "Kevin 喜歡檸檬水嗎？" },
+            { en: "No, he doesn't.", zh: "不，他不喜歡。" },
+            { en: "He likes tea.", zh: "他喜歡茶。" },
 
-            // 補充句型 (Story / Daily English)
-            { en: "I'm thirsty.", zh: "我好渴。" },
-            { en: "Me too.", zh: "我也是。" },
-            { en: "Drink some water.", zh: "喝點水吧。" }
+            // --- She 練習 (2題：包含代名詞與專有名詞) ---
+            { en: "Does she like bubble tea?", zh: "她喜歡珍珠奶茶嗎？" },
+            { en: "Yes, she does.", zh: "是的，她喜歡。" },
+
+            { en: "Does Amy like coffee?", zh: "Amy 喜歡咖啡嗎？" },
+            { en: "No, she doesn't.", zh: "不，她不喜歡。" },
+            { en: "She likes hot chocolate.", zh: "她喜歡熱巧克力。" }
         ];
 
         const IconCheckCircle = ({ size = 24, className = "" }) => (
