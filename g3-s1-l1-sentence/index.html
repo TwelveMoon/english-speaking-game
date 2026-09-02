@@ -72,7 +72,6 @@
             { en: "You're welcome.", zh: "不客氣。" }
         ];
 
-        // --- Icons ---
         const IconCheckCircle = ({ size = 24, className = "" }) => (
             <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>
         );
@@ -104,13 +103,11 @@
             const manualStopRef = useRef(true); 
             const gameStateRef = useRef(gameState);
             const currentIndexRef = useRef(currentIndex);
-            // ★ 新增：用來鎖定換題期間的狀態，防止重複觸發
             const isProcessingRef = useRef(false);
 
             useEffect(() => { gameStateRef.current = gameState; }, [gameState]);
             useEffect(() => { currentIndexRef.current = currentIndex; }, [currentIndex]);
 
-            // --- 判斷過關邏輯：完成所有句子 ---
             useEffect(() => {
                 if (currentIndex >= SENTENCES.length && SENTENCES.length > 0) {
                     manualStopRef.current = true;
@@ -120,7 +117,6 @@
                 }
             }, [currentIndex]);
 
-            // --- 初始化語音辨識 ---
             useEffect(() => {
                 const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
                 
@@ -140,14 +136,15 @@
                 };
 
                 recognition.onresult = (event) => {
-                    // ★ 新增：如果在換題動畫中，完全忽略收音結果
                     if (isProcessingRef.current) return;
 
-                    let liveTranscript = '';
-                    for (let i = event.resultIndex; i < event.results.length; ++i) {
-                        liveTranscript += event.results[i][0].transcript;
+                    let fullTranscript = '';
+                    // 修正 1：迴圈從 0 開始，保留這題開始後的所有停頓片段
+                    for (let i = 0; i < event.results.length; ++i) {
+                        fullTranscript += event.results[i][0].transcript + ' ';
                     }
-                    const resultText = liveTranscript.toLowerCase().trim();
+                    
+                    const resultText = fullTranscript.toLowerCase().trim();
                     setTranscript(resultText);
                     checkSentenceMatch(resultText); 
                 };
@@ -162,7 +159,6 @@
 
                 recognition.onend = () => {
                     setIsListening(false);
-                    // ★ 新增：如果是系統刻意在換題時關閉的，不要在這裡自動重啟
                     if (!manualStopRef.current && gameStateRef.current === 'playing' && !isProcessingRef.current) {
                         try { recognition.start(); } catch (e) {}
                     }
@@ -176,58 +172,64 @@
                 };
             }, []);
 
-            // --- 句型比對邏輯 (精準版) ---
             const checkSentenceMatch = useCallback((spokenText) => {
                 if (currentIndexRef.current >= SENTENCES.length || isProcessingRef.current) return;
 
                 const currentSentenceObj = SENTENCES[currentIndexRef.current];
-                
                 const normalizedSpokenWords = spokenText.replace(/[^a-z0-9\s]/g, '').trim().split(/\s+/);
                 const targetText = currentSentenceObj.en.toLowerCase().replace(/['']/g, ''); 
                 const targetWords = targetText.replace(/[^a-z0-9\s]/g, '').trim().split(/\s+/);
 
-                let matchCount = 0;
+                // 修正 2：數字轉換對照表
+                const numberMap = {
+                    'one': '1', 'two': '2', 'three': '3', 'four': '4', 'five': '5',
+                    'six': '6', 'seven': '7', 'eight': '8', 'nine': '9', 'ten': '10'
+                };
+
+                // 修正 3：嚴格比對機制，預設為 true，只要有一個字沒念到就判定失敗
+                let isPerfectMatch = true;
+
                 targetWords.forEach(tw => {
+                    let wordMatched = false;
+                    
                     if (normalizedSpokenWords.includes(tw)) {
-                        matchCount++;
+                        wordMatched = true;
                     } 
-                    // 為了避免把標準提高後，I'm 被系統聽成 I am 而卡關的特別處理
+                    else if (numberMap[tw] && normalizedSpokenWords.includes(numberMap[tw])) {
+                        wordMatched = true;
+                    }
                     else if (tw === 'im' && (normalizedSpokenWords.includes('i') && normalizedSpokenWords.includes('am'))) {
-                        matchCount++;
+                        wordMatched = true;
                     }
                     else if (tw === 'youre' && (normalizedSpokenWords.includes('you') && normalizedSpokenWords.includes('are'))) {
-                        matchCount++;
+                        wordMatched = true;
+                    }
+
+                    if (!wordMatched) {
+                        isPerfectMatch = false;
                     }
                 });
-
-                // ★ 關鍵：將過關門檻提高到 85%
-                // 這樣 4 個字的句子 (例如 I'm six years old) 必須 4/4 才能過關，漏掉 years 就會卡住！
-                const matchRate = matchCount / targetWords.length;
                 
-                if (matchRate >= 0.85) {
+                if (isPerfectMatch) {
                     triggerNextSentence();
                 }
             }, []);
 
-            // --- 換題邏輯與時間緩衝 ---
             const triggerNextSentence = () => {
                 if (isProcessingRef.current) return; 
                 
                 isProcessingRef.current = true;
                 setIsSuccessAnim(true);
                 
-                // ★ 關鍵：強制停止麥克風，清空上一句的記憶殘留
                 if (recognitionRef.current) {
                     recognitionRef.current.stop();
                 }
                 
-                // 顯示 1.2 秒的成功畫面後，切換到下一題
                 setTimeout(() => {
                     setTranscript('');
                     setCurrentIndex(prev => prev + 1);
                     setIsSuccessAnim(false);
 
-                    // 切換畫面後，再等 0.3 秒才重新打開麥克風，產生完美的緩衝感
                     setTimeout(() => {
                         manualStopRef.current = false;
                         if (gameStateRef.current === 'playing') {
@@ -313,7 +315,6 @@
                         {gameState === 'playing' && currentIndex < SENTENCES.length && (
                             <div className="w-full max-w-2xl mx-auto animate-in zoom-in duration-300 flex flex-col items-center">
                                 
-                                {/* 句子顯示卡片 */}
                                 <div key={currentIndex} className={`w-full bg-white rounded-3xl shadow-xl p-10 md:p-14 mb-10 text-center border-4 border-slate-100 transition-colors duration-300 slide-in-right ${isSuccessAnim ? 'success-flash border-emerald-300' : ''}`}>
                                     {isSuccessAnim ? (
                                         <div className="flex flex-col items-center justify-center h-32 text-emerald-600">
@@ -332,7 +333,6 @@
                                     )}
                                 </div>
 
-                                {/* 麥克風與即時回饋區 */}
                                 <div className="flex flex-col items-center justify-center w-full">
                                     <button
                                         onClick={toggleListening}
@@ -345,7 +345,7 @@
                                         {isListening && !isSuccessAnim ? <IconMic size={48} /> : <IconMicOff size={48} />}
                                     </button>
                                     
-                                    <div className="h-12 flex items-center justify-center text-center px-4 w-full">
+                                    <div className="min-h-[3rem] flex items-center justify-center text-center px-4 w-full">
                                         {transcript && !isSuccessAnim && (
                                             <span className="text-xl text-slate-500">
                                                 系統聽到: <strong className="text-emerald-600 font-bold">{transcript}</strong>
