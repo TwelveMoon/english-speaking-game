@@ -46,9 +46,8 @@
     <script type="text/babel">
         const { useState, useEffect, useRef, useCallback } = React;
 
-        // --- 句型題庫區 (三年級上學期第一課：年齡詢問與單字抽換) ---
+        // --- 句型題庫區 ---
         const SENTENCES = [
-            // 核心句型與單字抽換練習
             { en: "How old are you?", zh: "你幾歲？" },
             { en: "I'm six.", zh: "我六歲。" },
             { en: "I'm six years old.", zh: "我六歲。" },
@@ -69,7 +68,6 @@
             { en: "I'm ten.", zh: "我十歲。" },
             { en: "I'm ten years old.", zh: "我十歲。" },
 
-            // 補充句型
             { en: "Thank you.", zh: "謝謝你。" },
             { en: "You're welcome.", zh: "不客氣。" }
         ];
@@ -106,6 +104,8 @@
             const manualStopRef = useRef(true); 
             const gameStateRef = useRef(gameState);
             const currentIndexRef = useRef(currentIndex);
+            // ★ 新增：用來鎖定換題期間的狀態，防止重複觸發
+            const isProcessingRef = useRef(false);
 
             useEffect(() => { gameStateRef.current = gameState; }, [gameState]);
             useEffect(() => { currentIndexRef.current = currentIndex; }, [currentIndex]);
@@ -131,7 +131,7 @@
 
                 const recognition = new SpeechRecognition();
                 recognition.continuous = true;
-                recognition.interimResults = true; // 開啟即時辨識
+                recognition.interimResults = true; 
                 recognition.lang = 'en-US'; 
 
                 recognition.onstart = () => {
@@ -140,6 +140,9 @@
                 };
 
                 recognition.onresult = (event) => {
+                    // ★ 新增：如果在換題動畫中，完全忽略收音結果
+                    if (isProcessingRef.current) return;
+
                     let liveTranscript = '';
                     for (let i = event.resultIndex; i < event.results.length; ++i) {
                         liveTranscript += event.results[i][0].transcript;
@@ -159,7 +162,8 @@
 
                 recognition.onend = () => {
                     setIsListening(false);
-                    if (!manualStopRef.current && gameStateRef.current === 'playing') {
+                    // ★ 新增：如果是系統刻意在換題時關閉的，不要在這裡自動重啟
+                    if (!manualStopRef.current && gameStateRef.current === 'playing' && !isProcessingRef.current) {
                         try { recognition.start(); } catch (e) {}
                     }
                 };
@@ -172,47 +176,67 @@
                 };
             }, []);
 
-            // --- 句型寬鬆比對邏輯 ---
+            // --- 句型比對邏輯 (精準版) ---
             const checkSentenceMatch = useCallback((spokenText) => {
-                if (currentIndexRef.current >= SENTENCES.length) return;
+                if (currentIndexRef.current >= SENTENCES.length || isProcessingRef.current) return;
 
                 const currentSentenceObj = SENTENCES[currentIndexRef.current];
                 
-                // 1. 標準化使用者的語音 (去除標點，轉陣列)
                 const normalizedSpokenWords = spokenText.replace(/[^a-z0-9\s]/g, '').trim().split(/\s+/);
-                
-                // 2. 標準化目標句子 (去除標點，轉陣列)
-                // 特別處理 I'm, you're 這種縮寫，避免被拆散
                 const targetText = currentSentenceObj.en.toLowerCase().replace(/['']/g, ''); 
                 const targetWords = targetText.replace(/[^a-z0-9\s]/g, '').trim().split(/\s+/);
 
-                // 3. 計算命中率 (使用者說出的字，涵蓋了幾個目標句子的字)
                 let matchCount = 0;
                 targetWords.forEach(tw => {
                     if (normalizedSpokenWords.includes(tw)) {
                         matchCount++;
+                    } 
+                    // 為了避免把標準提高後，I'm 被系統聽成 I am 而卡關的特別處理
+                    else if (tw === 'im' && (normalizedSpokenWords.includes('i') && normalizedSpokenWords.includes('am'))) {
+                        matchCount++;
+                    }
+                    else if (tw === 'youre' && (normalizedSpokenWords.includes('you') && normalizedSpokenWords.includes('are'))) {
+                        matchCount++;
                     }
                 });
 
-                // 4. 過關條件：只要講對 70% 的單字就算過關
+                // ★ 關鍵：將過關門檻提高到 85%
+                // 這樣 4 個字的句子 (例如 I'm six years old) 必須 4/4 才能過關，漏掉 years 就會卡住！
                 const matchRate = matchCount / targetWords.length;
                 
-                if (matchRate >= 0.7) {
+                if (matchRate >= 0.85) {
                     triggerNextSentence();
                 }
             }, []);
 
+            // --- 換題邏輯與時間緩衝 ---
             const triggerNextSentence = () => {
-                // 防止重複觸發
-                if (isSuccessAnim) return; 
+                if (isProcessingRef.current) return; 
                 
+                isProcessingRef.current = true;
                 setIsSuccessAnim(true);
                 
+                // ★ 關鍵：強制停止麥克風，清空上一句的記憶殘留
+                if (recognitionRef.current) {
+                    recognitionRef.current.stop();
+                }
+                
+                // 顯示 1.2 秒的成功畫面後，切換到下一題
                 setTimeout(() => {
                     setTranscript('');
                     setCurrentIndex(prev => prev + 1);
                     setIsSuccessAnim(false);
-                }, 1000); // 顯示一秒鐘的綠色成功畫面再切換
+
+                    // 切換畫面後，再等 0.3 秒才重新打開麥克風，產生完美的緩衝感
+                    setTimeout(() => {
+                        manualStopRef.current = false;
+                        if (gameStateRef.current === 'playing') {
+                            try { recognitionRef.current.start(); } catch(e) {}
+                        }
+                        isProcessingRef.current = false;
+                    }, 300);
+                    
+                }, 1200);
             };
 
             const toggleListening = () => {
@@ -231,6 +255,7 @@
                 setCurrentIndex(0);
                 setTranscript('');
                 setIsSuccessAnim(false);
+                isProcessingRef.current = false;
                 
                 manualStopRef.current = false;
                 setTimeout(() => {
@@ -274,7 +299,7 @@
                                 </h1>
                                 <p className="text-lg text-slate-600 mb-8 max-w-md mx-auto">
                                     畫面上會依序出現句子，請跟著唸出來！<br/>
-                                    只要唸對大部分的字就能過關喔！
+                                    發音必須非常準確才能過關喔！
                                 </p>
                                 <button 
                                     onClick={startGame}
@@ -314,9 +339,10 @@
                                         className={`w-24 h-24 flex items-center justify-center rounded-full text-white transition-all shadow-lg mb-6
                                             ${isListening && !isSuccessAnim ? 'bg-red-500 mic-active' : 'bg-emerald-500 hover:bg-emerald-600'}
                                             ${errorMsg ? 'opacity-50 cursor-not-allowed' : ''}
+                                            ${isSuccessAnim ? 'opacity-50' : ''}
                                         `}
                                     >
-                                        {isListening ? <IconMic size={48} /> : <IconMicOff size={48} />}
+                                        {isListening && !isSuccessAnim ? <IconMic size={48} /> : <IconMicOff size={48} />}
                                     </button>
                                     
                                     <div className="h-12 flex items-center justify-center text-center px-4 w-full">
